@@ -1,8 +1,24 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { Expand, Fold,User, Lock, SwitchButton } from '@element-plus/icons-vue'
 
+const router = useRouter()
 const isCollapse = ref(false);
+
+// ========== 顶栏"管理员"下拉菜单：修改密码 / 退出登录 ==========
+// ✅ el-dropdown 的 @command 事件会把 el-dropdown-item 上的 command 值传进来（a=修改密码，b=退出登录）
+const handleCommand = (command) => {
+  if (command === 'a') {
+    // ✅ 修改密码：弹窗功能后续再做，先弹个提示
+    ElMessage.info('修改密码功能开发中')
+  } else if (command === 'b') {
+    // ✅ 退出登录两步走：1. 删掉浏览器里存的用户信息（含 token） 2. 跳回登录页
+    localStorage.removeItem('userInfo')
+    router.push('/login')
+  }
+}
 
 </script>
 

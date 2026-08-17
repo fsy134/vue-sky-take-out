@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/commit-gate.mjs",
+            "statusMessage": "检查提交门禁标记..."
+          }
+        ]
+      }
+    ]
+  }
+}

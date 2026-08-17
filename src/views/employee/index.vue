@@ -189,7 +189,7 @@ onMounted(() => {
 
 <!-- 员工列表表格 -->
  <div class="container">
-  <el-table :data="empList" stripe  style="width: 100%; margin-top:20px;margin-bottom:20px;font-size: medium;font-family: '微软雅黑';color: black;" 
+  <el-table :data="empList" stripe  style="width: 100%; margin-top:20px;margin-bottom:20px;"
   :row-style="{ height: '50px' }"   
 >
     <el-table-column prop="name" label="员工姓名" min-width="150" align="center"/>
