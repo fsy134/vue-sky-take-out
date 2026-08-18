@@ -47,6 +47,13 @@ export default defineConfig({
         target: 'http://localhost:8080/admin',  // 后端接口地址
         changeOrigin: true,                // 允许跨域
         rewrite: (path) => path.replace(/^\/api/, ''), // 可选：重写路径
+      },
+      // ✅ WebSocket 代理（来单/催单提醒专用）：
+      //    前端连 ws://localhost:5200/ws/xxx，vite 转发到后端 ws://localhost:8080/ws/xxx
+      //    ws: true 是"允许转发 WebSocket 握手"的开关；注意不写 rewrite——后端口径就是 /ws 开头，不能去掉
+      '/ws': {
+        target: 'ws://localhost:8080',
+        ws: true,
       }
     }
   }
