@@ -21,12 +21,12 @@
 
 ## 3. 快速开始（怎么把项目跑起来）
 
-1. 先启动**后端**：Java 服务 `sky-take-out`，接口地址 `http://localhost:8080/admin`（需先跑起来，前端页面才有数据）。
+1. 后端已部署到**微信云托管**（2026-08-20），前端直接跑就行；如需改回本地后端，把 `vite.config.js` 代理 target 换回 `http://localhost:8080/admin` 并启动本地 Java 服务。
 2. 首次运行前端：`npm install`（装依赖）→ `npm run dev`（启动，自动打开 http://localhost:5200）。
-3. 登录账号：管理员账号密码（⚠️ 请在此补充实际账号密码：账号 ______ 密码 ______）。
+3. 登录账号：管理员账号密码 = `admin` / `123456`。
 4. 构建发布：`npm run build`（打包）；`npm run preview`（本地预览打包结果，端口 4173）。
 
-**代理说明**（新手了解即可）：前端请求都发到 `/api` 开头，vite 会自动转发到 `http://localhost:8080/admin` 并去掉 `/api` 前缀（配置在 `vite.config.js`）。改后端地址只改这一个文件。
+**代理说明**（新手了解即可）：前端请求都发到 `/api` 开头，vite 会自动转发到云托管域名 `https://shaoshaocanting2-300150-11-1472054049.sh.run.tcloudbase.com/admin` 并去掉 `/api` 前缀（配置在 `vite.config.js`）。改后端地址只改这一个文件；WebSocket 的 `/ws` 同样在此文件配置，指向云端 `wss://` 域名。
 
 **登录态说明**：登录成功后用户信息（含 token）存在浏览器 localStorage 的 `userInfo` 里；之后每次请求由 `src/utils/request.js` 自动带上 token；token 失效（401）会自动弹提示并跳回登录页。
 
@@ -200,6 +200,7 @@
 | 4 | 无路由守卫，未登录可直接访问 /employee 等内页 | `src/router/index.js` | P1：建议做工作台前补 `beforeEach`（检查 localStorage token） |
 | 5 | employee 的 `nextTick` 未导入；`if (!formRef)` 应为 `formRef.value` | `src/views/employee/index.vue` | P2：下次审查 employee 时顺手修，独立提交 |
 | 6 | emp.js 的 `getPage` 未按 `xxxApi` 命名 | `src/api/emp.js` | P3：不改现状，新代码遵守规范 |
+| 7 | WebSocket 无心跳（云端约 60 秒空闲断连）、退出登录后僵尸重连 | `src/views/layout/index.vue` | ✅ 已解决：加 30 秒心跳 + 主动关闭标记（后端部署云托管配套 fix 提交） |
 
 **联动规则**：
 - 修 bug 是独立小任务，不受"一次一组件"限制，但必须独立提交（`fix:` 开头），不得混入页面组件提交。

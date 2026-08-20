@@ -84,13 +84,19 @@ const orderTip = ref(null)
 // ✅ tipVisible 控制右上角提醒卡片的显示/隐藏（true 显示，false 隐藏）
 const tipVisible = ref(false)
 
-// ✅ 下面三个不是"页面变量"，是后台工作人员，用普通 let 即可（不需要 ref 响应式）：
-let ws = null              // WebSocket 连接对象
-let reconnectTimer = null  // 断线重连的定时器
-let tipTimer = null        // 弹窗 15 秒自动关闭的定时器
+// ✅ 下面几个不是"页面变量"，是后台工作人员，用普通 let 即可（不需要 ref 响应式）：
+let ws = null                // WebSocket 连接对象
+let reconnectTimer = null    // 断线重连的定时器
+let tipTimer = null          // 弹窗 15 秒自动关闭的定时器
+let heartbeatTimer = null    // 心跳定时器：每隔 30 秒给后端发一条"我还活着"，防止云端网关掐断空闲连接
+let wsManuallyClosed = false // 标记是不是"自己主动关的"：主动关（退出登录）就不再重连
 
 // ✅ 建立 WebSocket 连接
 const connectWebSocket = () => {
+  // ✅ 每次（重）连前重置"主动关闭"标记：
+  //    否则退出登录再重新登录后，万一断线会因为标记还是 true 而不再自动重连
+  wsManuallyClosed = false
+
   // sid：后端用它当"钥匙"登记连接（不校验身份），这里取登录员工的 id，没取到就用 'admin'
   let sid = 'admin'
   const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
@@ -101,7 +107,18 @@ const connectWebSocket = () => {
   const url = `ws://${location.host}/ws/${sid}`
   ws = new WebSocket(url)
 
-  // ✅ 收到后端消息时触发（注意：后端每 5 秒还会发一条心跳测试消息，必须过滤掉）
+  // ✅ 连接成功后：每 30 秒发一次心跳（内容是"ping"三个字母，后端收到只打印日志、不回复）
+  //    为什么要心跳：微信云托管网关约 60 秒没消息会掐断空闲连接，
+  //    30 秒发一次正好赶在超时前"续命"，提醒功能才能一直在线
+  ws.onopen = () => {
+    heartbeatTimer = setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send('ping')
+      }
+    }, 30000)
+  }
+
+  // ✅ 收到后端消息时触发（只处理 JSON 格式的消息，非 JSON 的一律忽略）
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data)
@@ -110,12 +127,16 @@ const connectWebSocket = () => {
         showOrderTip(data)
       }
     } catch (e) {
-      // ✅ 走到这里说明消息不是 JSON（就是那条"这是来自服务端的消息：…"测试消息），静默忽略
+      // ✅ 走到这里说明消息不是 JSON（比如普通文本测试消息），静默忽略
     }
   }
 
-  // ✅ 连接断开时触发（后端重启、网络断了等）：5 秒后自动重连，商家不用手动刷新页面
+  // ✅ 连接断开时触发（后端重启、网关超时、网络断了等）：5 秒后自动重连，商家不用手动刷新页面
+  //    ⚠️ 但如果是"自己主动关的"（退出登录），就不重连，避免登录页后台还挂着一个连接
   ws.onclose = () => {
+    clearInterval(heartbeatTimer) // 连接没了，心跳定时器一起清掉
+    heartbeatTimer = null
+    if (wsManuallyClosed) return // 主动关闭（退出登录）：不再重连
     if (reconnectTimer) return // 防止重复排队重连
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null
@@ -165,8 +186,13 @@ onMounted(() => {
   connectWebSocket()
 })
 
-// ✅ 组件卸载（退出登录）时：断开连接、清理两个定时器，避免"僵尸连接"和内存泄漏
+// ✅ 组件卸载（退出登录）时：先打"主动关闭"标记，再断连接、清理定时器，避免"僵尸连接"和内存泄漏
 onBeforeUnmount(() => {
+  wsManuallyClosed = true // ✅ 先打标记：onclose 里看到它就不会再排队重连
+  if (heartbeatTimer) {   // 清掉心跳定时器
+    clearInterval(heartbeatTimer)
+    heartbeatTimer = null
+  }
   if (reconnectTimer) {
     clearTimeout(reconnectTimer)
     reconnectTimer = null

@@ -44,16 +44,19 @@ export default defineConfig({
     proxy: {
       // 接口代理配置，解决跨域问题
       '/api': {
-        target: 'http://localhost:8080/admin',  // 后端接口地址
+        // ✅ 已切换云托管后端：本地 localhost:8080 改为云端公网域名（保留 /admin 前缀，后端接口都在 /admin 下）
+        target: 'https://shaoshaocanting2-300150-11-1472054049.sh.run.tcloudbase.com/admin',
         changeOrigin: true,                // 允许跨域
         rewrite: (path) => path.replace(/^\/api/, ''), // 可选：重写路径
       },
       // ✅ WebSocket 代理（来单/催单提醒专用）：
-      //    前端连 ws://localhost:5200/ws/xxx，vite 转发到后端 ws://localhost:8080/ws/xxx
+      //    前端连 ws://localhost:5200/ws/xxx，vite 转发到云端 wss://域名/ws/xxx
       //    ws: true 是"允许转发 WebSocket 握手"的开关；注意不写 rewrite——后端口径就是 /ws 开头，不能去掉
+      //    changeOrigin: true 必加：握手时把 Host 头改成云端域名，云托管网关才能正确路由（本地无此要求）
       '/ws': {
-        target: 'ws://localhost:8080',
+        target: 'wss://shaoshaocanting2-300150-11-1472054049.sh.run.tcloudbase.com',
         ws: true,
+        changeOrigin: true,
       }
     }
   }
